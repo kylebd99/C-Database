@@ -1,9 +1,6 @@
 #include "Database_Helpers.h"
-#include <stdlib.h>
-#include <algorithm.h>
-
-#define INT 1
-#define STR 2
+#include <cstdlib>
+#include <algorithm>
 
 typedef union value{
   string strval;
@@ -40,7 +37,7 @@ public:
   //TODO Method which allows the creation of rows
   //TODO Method which allows the deletion of rows
 
-}
+};
 
 class Column{
 public:
@@ -49,22 +46,17 @@ public:
   string type;
   string varname;
   string description;
-}
-
-class Str_Column: public Column{
-public:
-  vector<string> vals;
-  Num_Column(){
+  vector<value> vals;
+  Column(){
     type = "";
     parent  = NULL;
     varname = "";
     description = "";
-    vals = std::vector<string>;
+    vals = std::vector<value>;
     length = 0;
   };
-  //constructor
-  Str_Column(Database p, string name, string descript, vector<string> new_vals){
-    type = "str";
+  Column(string t, Database p, string name, string descript, vector<value> new_vals){
+    type = t;
     parent = p;
     varname = name;
     description = descript;
@@ -72,8 +64,12 @@ public:
     length = new_vals.size();
   };
   //Returns a numeric equivalent column
-  Num_Column str_to_num(){
-    vector<string>::iterator old_iter = vals.begin();
+  void str_to_num(){
+    if(strcmp(type,"num")!=0){
+      fprintf(stderr,"Error: Attempt to convert a column already containing numeric values to numeric");
+      return;
+    }
+    vector<value>::iterator old_iter = vals.begin();
     int sz = vals.size();
     vector<double> new_vec;
     for(int i = 0; i < sz; i++){
@@ -86,38 +82,24 @@ public:
       }
       old_iter++;
     }
-    return Num_Column(parent,varname,description,new_vec);
+    vals = new_vec;
+    return;
   };
-}
-
-class Num_Column: public Column{
-public:
-  vector<double> vals;
-  Num_Column(){
-    type = "";
-    parent  = NULL;
-    varname = "";
-    description = "";
-    vals = std::vector<double>;
-    length = 0;
-  };
-  Num_Column(Database p, string name, string descript, vector<double> new_vals){
-    type = "num";
-    parent = p;
-    varname = name;
-    description = descript;
-    vals = new_vals;
-    length = new_vals.size();
-  };
-  Str_Column num_to_str(){
-    std::vector<string> new_vec;
+  void num_to_str(){
+    if(strcmp(type,"str")!=0){
+      fprintf(stderr,"Error: Attempt to convert a column already containing string values to string");
+      return;
+    }
+    std::vector<value> new_vec;
     new_vec.resize(vals.size());
     std:transform(vals.begin(),vals.end(),new_vec.begin(),std::to_string())
-    return Str_Column(parent, varname, description, new_vec);
-  }
-}
+    vals = new_vec;
+    return;
+  };
+};
 
 class Matrix{
+
 public:
   int rows;
   int cols;
@@ -132,4 +114,4 @@ public:
   //TODO Scalar Multiplication
   //TODO Transposition
   //TODO Function to create matrix from a Database's cols vector
-}
+};
