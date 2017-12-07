@@ -1,1 +1,6 @@
-#include "Database_Class.h"
+#include "Database_Class.cc"
+
+
+int main(int argc, char* args){
+
+}

@@ -1,81 +1,49 @@
-#include "Database_Helpers.h"
 #include <cstdlib>
 #include <algorithm>
+#include <string>
+#include <vector>
+#include <boost/variant.hpp>
+#include <cctype>
+class Database;
 
-typedef union value{
-  string strval;
-  double numval;
-};
-
-
-class Database{
-public:
-  int width;
-  int length;
-  vector<std::unique_ptr(Column)> cols;
-  //TODO Method which allows the creation of columns
-  void add_num_col(std::vector<double> vals, string name, string description){
-    Num_Column new_col = Num_Column(this,name,description,vals);
-    cols.push_back(std::make_unique<Num_Column>(new_col));
-    width++;
-  }
-  void add_str_col(std::vector<string> vals, string name, string description){
-    Num_Column new_col = Str_Column(this,name,description,vals);
-    cols.push_back(std::make_unique<Num_Column>(new_col));
-    width++;
-  }
-  // Param Varname, return 0 success return 1 fail not found col
-  int del_col(string name){
-    for(std::iterator i = cols.begin(); i!=cols.end(); i++){
-      if(strcmp(*i->varname,name)==0){
-        cols.erase(i);
-        return 0;
-      }
+bool is_num(std::string entry){
+  for(std::string::iterator i = entry.begin();i!=entry.end();i++){
+    if(!isdigit(*i)&&!ispunct(*i)&&!isspace(*i)){
+      return false;
     }
-    return 1;
   }
-  //TODO Method which allows the creation of rows
-  //TODO Method which allows the deletion of rows
-
-};
+  return true;
+}
 
 class Column{
 public:
-  Database parent;
+  Database* parent;
   int length;
-  string type;
-  string varname;
-  string description;
-  vector<value> vals;
-  Column(){
-    type = "";
-    parent  = NULL;
-    varname = "";
-    description = "";
-    vals = std::vector<value>;
-    length = 0;
-  };
-  Column(string t, Database p, string name, string descript, vector<value> new_vals){
-    type = t;
+  std::string type;
+  std::string varname;  
+  std::string description;
+  std::vector<boost::variant<double,std::string>> vals;
+  Column(Database* p = NULL, int l = 0, std::string t = std::string(), std::string name = std::string(), std::string descript = std::string(), std::vector<boost::variant<double,std::string>> new_vals = std::vector<boost::variant<double,std::string>>())
+  {
     parent = p;
+    length = l;
+    type = t;
     varname = name;
     description = descript;
     vals = new_vals;
-    length = new_vals.size();
-  };
-  //Returns a numeric equivalent column
+  }
   void str_to_num(){
-    if(strcmp(type,"num")!=0){
+    if(type!="str"){
       fprintf(stderr,"Error: Attempt to convert a column already containing numeric values to numeric");
       return;
     }
-    vector<value>::iterator old_iter = vals.begin();
+    std::vector<boost::variant<double,std::string>>::iterator old_iter = vals.begin();
     int sz = vals.size();
-    vector<double> new_vec;
+    std::vector<boost::variant<double,std::string>> new_vec;
     for(int i = 0; i < sz; i++){
-      double val = atof(*old_iter);
-      if(val!=0){
-        new_vec.push_back(val):
+      std::string val = boost::get<std::string>(*old_iter);
+      if(is_num(val)){
+        new_vec.push_back(stod(val));
       }
       else{
         new_vec.push_back(NULL);
@@ -84,18 +52,71 @@ public:
     }
     vals = new_vec;
     return;
-  };
+  }
   void num_to_str(){
-    if(strcmp(type,"str")!=0){
+    if(type!="num"){
       fprintf(stderr,"Error: Attempt to convert a column already containing string values to string");
       return;
     }
-    std::vector<value> new_vec;
+    std::vector<boost::variant<double,std::string>> new_vec;
     new_vec.resize(vals.size());
-    std:transform(vals.begin(),vals.end(),new_vec.begin(),std::to_string())
+    for(std::vector<boost::variant<double,std::string>>::iterator i = vals.begin(), j = new_vec.begin(); i!=vals.end();i++,j++){
+      *j = std::to_string(boost::get<double>(*i));
+    }
     vals = new_vec;
     return;
-  };
+  }
+};
+
+
+
+class Database{
+public:
+  int width;
+  int length;
+  std::vector<std::unique_ptr<Column>> cols;
+  // Method which allows the creation  of columns
+  void add_col(std::vector<boost::variant<double,std::string>> vals, std::string type,std::string name, std::string description){
+    Column new_col(this, length, type, name, description, vals);
+    cols.push_back(std::make_unique<Column>(new_col));
+    width++;
+  }
+  // Param Varname, return 0 success return 1 fail not found col
+  int del_col(std::string name){
+    for(std::vector<std::unique_ptr<Column>>::iterator i = cols.begin(); i!=cols.end(); i++){
+      if((*i)->varname!=name){
+        cols.erase(i);
+        return 0;
+      }
+    }
+    return 1;
+  }
+  //TODO Method which allows the creation of rows
+  int add_row(std::vector<boost::variant<double,std::string>> vals){
+    if(vals.size()!=(unsigned)length){
+      fprintf(stderr,"Error: Only inputed %d values but there are %d columns\n", (int) vals.size(), length);
+      return 1;
+    }
+    std::vector<boost::variant<double,std::string>>::iterator j = vals.begin();
+    for(std::vector<std::unique_ptr<Column>>::iterator i = cols.begin(); i!=cols.end();i++){
+      if(((*i)->type == "str" && (*j).type()!=typeid(std::string))||((*i)->type == "num" && (*j).type()!=typeid(double))){
+        fprintf(stderr,"Error: Wrong value type attempted for row addition");
+        return 1;
+      }
+      (*i)->vals.push_back((*j));
+      j++;
+    }
+  }
+  //Method which allows the deletion of rows at a given zero-indexed location
+  int del_row(int index){
+    if(index>=length){
+      fprintf(stderr,"Error: Attempting to delete a row at index %d beyond length of database %d", index,length);
+      return 1;
+    }
+   for(std::vector<std::unique_ptr<Column>>::iterator i = cols.begin(); i!=cols.end();i++){
+      (*i)->vals.erase(((*i)->vals).begin()+index);
+   }
+  }
 };
 
 class Matrix{
@@ -103,12 +124,8 @@ class Matrix{
 public:
   int rows;
   int cols;
-  double data[][];
-  Matrix(){
-    rows = 0;
-    cols = 0;
-    data = NULL;
-  };
+  std::vector<double> data;
+  Matrix();
   //TODO Matrix Multiplication
   //TODO Matrix Addition
   //TODO Scalar Multiplication
