@@ -1,12 +1,17 @@
 #include <cstdlib>
-#include <algorithm>
 #include <string>
 #include <vector>
 #include <boost/variant.hpp>
 #include <cctype>
+#include <cfloat>
+#include <memory>
+#define NA -DBL_MAX
 class Database;
 
 bool is_num(std::string entry){
+  if(entry=="N/A"){
+    return true;
+  }
   for(std::string::iterator i = entry.begin();i!=entry.end();i++){
     if(!isdigit(*i)&&!ispunct(*i)&&!isspace(*i)){
       return false;
@@ -15,12 +20,14 @@ bool is_num(std::string entry){
   return true;
 }
 
+//This class is what the actual data will be stored in and will essentially represent a single
+//variable in the dataset which can be either numeric or string
 class Column{
 public:
   Database* parent;
   int length;
   std::string type;
-  std::string varname;  
+  std::string varname;
   std::string description;
   std::vector<boost::variant<double,std::string>> vals;
   Column(Database* p = NULL, int l = 0, std::string t = std::string(), std::string name = std::string(), std::string descript = std::string(), std::vector<boost::variant<double,std::string>> new_vals = std::vector<boost::variant<double,std::string>>())
@@ -42,15 +49,16 @@ public:
     std::vector<boost::variant<double,std::string>> new_vec;
     for(int i = 0; i < sz; i++){
       std::string val = boost::get<std::string>(*old_iter);
-      if(is_num(val)){
+      if(is_num(val) && val!="N/A"){
         new_vec.push_back(stod(val));
       }
       else{
-        new_vec.push_back(NULL);
+        new_vec.push_back(NA);
       }
       old_iter++;
     }
     vals = new_vec;
+    type = "num";
     return;
   }
   void num_to_str(){
@@ -74,16 +82,19 @@ class Database{
 public:
   int width;
   int length;
-  std::vector<std::unique_ptr<Column>> cols;
+  std::vector<std::shared_ptr<Column>> cols;
+
   // Method which allows the creation  of columns
-  void add_col(std::vector<boost::variant<double,std::string>> vals, std::string type,std::string name, std::string description){
-    Column new_col(this, length, type, name, description, vals);
-    cols.push_back(std::make_unique<Column>(new_col));
+  void add_col(std::vector<boost::variant<double,std::string>> vals, std::string type, std::string name, std::string description){
+
+    Column new_col = *(new Column(this, length, type, name, description, vals));
+    cols.push_back(std::make_shared<Column>(new_col));
     width++;
+    return;
   }
   // Param Varname, return 0 success return 1 fail not found col
   int del_col(std::string name){
-    for(std::vector<std::unique_ptr<Column>>::iterator i = cols.begin(); i!=cols.end(); i++){
+    for(std::vector<std::shared_ptr<Column>>::iterator i = cols.begin(); i!=cols.end(); i++){
       if((*i)->varname!=name){
         cols.erase(i);
         return 0;
@@ -98,7 +109,7 @@ public:
       return 1;
     }
     std::vector<boost::variant<double,std::string>>::iterator j = vals.begin();
-    for(std::vector<std::unique_ptr<Column>>::iterator i = cols.begin(); i!=cols.end();i++){
+    for(std::vector<std::shared_ptr<Column>>::iterator i = cols.begin(); i!=cols.end();i++){
       if(((*i)->type == "str" && (*j).type()!=typeid(std::string))||((*i)->type == "num" && (*j).type()!=typeid(double))){
         fprintf(stderr,"Error: Wrong value type attempted for row addition");
         return 1;
@@ -113,7 +124,7 @@ public:
       fprintf(stderr,"Error: Attempting to delete a row at index %d beyond length of database %d", index,length);
       return 1;
     }
-   for(std::vector<std::unique_ptr<Column>>::iterator i = cols.begin(); i!=cols.end();i++){
+   for(std::vector<std::shared_ptr<Column>>::iterator i = cols.begin(); i!=cols.end();i++){
       (*i)->vals.erase(((*i)->vals).begin()+index);
    }
   }
