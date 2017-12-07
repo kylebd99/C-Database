@@ -8,6 +8,8 @@ This program is a commandlet which will allow you to do a basic analysis of a CS
    the program into
   -Enter the command "./CSV_Reader.csv 'CSV_FILE'" where CSV_FILE is the address of
    the file that you would like to analyze
+  -For a sample of the program's functionality, feel free to download the file "Test_Data.csv"
+   and run it as above
 2) Compiling
   -First, make sure that you have a recent version of the compiler g++ and that
    you have the Boost Library, specifically "boost/variant.hpp" and "boost/tokenizer.hpp"
