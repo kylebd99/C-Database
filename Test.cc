@@ -2,7 +2,6 @@
 
 
 int main(int argc, char** args){
-
   if(argc!= 2){
     printf("Usage: ./a.exe [filename]\n");
     return 1;
