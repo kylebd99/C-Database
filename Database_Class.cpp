@@ -1,10 +1,12 @@
 #include <cstdlib>
+#include <cstdio>
 #include <string>
 #include <vector>
 #include <boost/variant.hpp>
 #include <cctype>
 #include <cfloat>
 #include <memory>
+#include <iterator>
 #define NA -DBL_MAX
 class Database;
 

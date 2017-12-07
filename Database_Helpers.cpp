@@ -1,4 +1,4 @@
-#include "Database_Class.cc"
+#include "Database_Class.cpp"
 #include <iostream>
 #include <fstream>
 #include <cmath>

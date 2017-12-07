@@ -1,4 +1,4 @@
-#include "Database_Helpers.cc"
+#include "Database_Helpers.cpp"
 
 
 int main(int argc, char** args){
