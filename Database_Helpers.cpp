@@ -1,4 +1,5 @@
 #include "Database_Class.cpp"
+#include "Matrix.cpp"
 #include <iostream>
 #include <fstream>
 #include <cmath>
@@ -156,5 +157,24 @@ void descriptive_info(Database* data){
   for(unsigned int i = 0; i<ranges.size(); i++){
     printf("%-12.3f", ranges[i]);
   }
+  printf("\n");
 }
+
+//Debugging function which prints out the contents of a Matrix
+void print_matrix(Matrix* m){
+  printf("Printing Matrix...\n");
+  for(int i = 0; i<m->rows;i++){
+    for(int j = 0; j<m->cols;j++){
+      double val =  m->data[i*m->cols+j];
+      if(val!= NA){
+        printf("%5.5f     ",val);
+      }
+      else{
+        printf("NA     ");
+      }
+    }
+    printf("\n");
+  }
+}
+
 //TODO Function which does linear regression

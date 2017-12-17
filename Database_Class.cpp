@@ -1,3 +1,5 @@
+#ifndef Database_Class_H
+#define Database_Class_H
 #include <cstdlib>
 #include <cstdio>
 #include <string>
@@ -132,16 +134,5 @@ public:
   }
 };
 
-class Matrix{
 
-public:
-  int rows;
-  int cols;
-  std::vector<double> data;
-  Matrix();
-  //TODO Matrix Multiplication
-  //TODO Matrix Addition
-  //TODO Scalar Multiplication
-  //TODO Transposition
-  //TODO Function to create matrix from a Database's cols vector
-};
+#endif
